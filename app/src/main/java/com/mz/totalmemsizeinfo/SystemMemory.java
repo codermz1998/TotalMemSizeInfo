@@ -2,8 +2,6 @@ package com.mz.totalmemsizeinfo;
 
 import android.app.ActivityManager;
 import android.content.Context;
-import android.text.format.Formatter;
-import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -12,51 +10,45 @@ import java.text.DecimalFormat;
 
 public class SystemMemory {
 
-    private static String TAG = "SystemMemory";
-
-    private static int initial_memory_int = 1;
-
     /**
-     * * 获取android当前可用运行内存大小
-     * * @param context
-     * *
+     * 获取当前可用运行内存 (单位: GB)
      */
     public static String getAvailMemory(Context context) {
         ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
         am.getMemoryInfo(mi);
-        // mi.availMem; 当前系统的可用内存
-        return Formatter.formatFileSize(context, mi.availMem);// 将获取的内存大小规格化
+
+        // 1024进制转换
+        double availGb = mi.availMem / (1024.0 * 1024.0 * 1024.0);
+        DecimalFormat df = new DecimalFormat("0.00");
+        return df.format(availGb);
     }
 
-    private static String[] units = {"B", "KB", "MB", "GB", "TB"};
-
     /**
-     * * 获取android总运行内存大小
-     * * @param context
-     * *
+     * 获取总运行内存 (单位: GB)
      */
     public static int getTotalMemory(Context context) {
-        String str1 = "/proc/meminfo";// 系统内存信息文件
+        String str1 = "/proc/meminfo";
         String str2;
         String[] arrayOfString;
         long initial_memory = 0;
         try {
             FileReader localFileReader = new FileReader(str1);
             BufferedReader localBufferedReader = new BufferedReader(localFileReader, 8192);
-            str2 = localBufferedReader.readLine();// 读取meminfo第一行，系统总内存大小
+            str2 = localBufferedReader.readLine();
             arrayOfString = str2.split("\\s+");
-            // 获得系统总内存，单位是KB
-            int i = Integer.valueOf(arrayOfString[1]).intValue();
-            // int值乘以1024转换为long类型
-            initial_memory = new Long((long) i * 1024);
-            double initial_memory_double = (initial_memory / (1024.0 * 1024.0 * 1024.0));
-            DecimalFormat df = new DecimalFormat("######0"); // 四色五入转换成整数
-            initial_memory_int = Integer.parseInt(df.format(initial_memory_double));
-            Log.d(TAG, "TotalMemory = " + initial_memory_int);
+
+            // 获得KB
+            long i = Long.parseLong(arrayOfString[1]);
+            // 转换为Byte再转为GB
+            double initial_memory_double = (i * 1024.0) / (1024.0 * 1024.0 * 1024.0);
+
             localBufferedReader.close();
+            // 四舍五入取整
+            return (int) Math.ceil(initial_memory_double);
         } catch (IOException e) {
+            e.printStackTrace();
+            return 0;
         }
-        return initial_memory_int;
     }
 }
